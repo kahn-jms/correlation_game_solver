@@ -15,6 +15,33 @@ from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 # Want to be able to pause running to see what's going on
 import time
+# Need to pull out point coords from html
+import re
+# To calculate the actual correlation coeff
+from numpy import corrcoef
+
+num_points = 100
+
+
+################################################################################
+### Calculate correlation coeff
+################################################################################
+# Note x(0,1.0)=(0,360), y(0,1.0)=(320,0)
+def calc_corr_coeff(driver):
+	x_coords = []
+	y_coords = []
+	for i in range(0, 100):
+		# Fetch the coords from html of each point
+		point = driver.find_element_by_class_name("nv-point-"+str(i))
+		attr_val = point.get_attribute("transform")
+		# Pull out just the x-y coords
+		coords = re.split('\(|\)|,',str(attr_val))[1:3]
+		# Scale them down to between 0-1 and adjust the y-vals (flip)
+		x_coords.append(float(coords[0])/360.0)
+		y_coords.append(abs(float(coords[1])-320.)/320.)
+	# Now we have all the coords calculate correlation coeff
+	#return numpy.corrcoef(x_coords,y_coords)[0, 1]
+	return corrcoef(x_coords,y_coords)[0, 1]
 
 
 ################################################################################
@@ -40,11 +67,12 @@ driver.get("http://guessthecorrelation.com/")
 ## Greeted with the start menu, need to start a new game
 elem_new_game = driver.find_element_by_id("new-game")
 elem_new_game.click()
-time.sleep(5)
+#time.sleep(5)
+num_games = int(raw_input("How many games should we play?"))
 
-## Need to create a username initially
-alert=driver.switch_to_alert()
-alert.accept()
+## Need to create a username initially (not working in Chrome?)
+# alert=driver.switch_to_alert()
+# alert.accept()
 
 
 ################################################################################
@@ -56,19 +84,52 @@ elem_guess = driver.find_element_by_id("guess-input")
 # Next tag (type <a>) lets us move on from guess result screen
 elem_next = driver.find_element_by_id("next-btn")
 
-# Enter our guess for correlation coeff into text box
-corr_guess = 6
-elem_guess.send_keys(corr_guess)
-# And submit the guess
-elem_guess.send_keys(Keys.RETURN)
-# This takes us to the result page
-time.sleep(5)
+for i in xrange(num_games):
+	# Calculate the correlation coeff for this plot
+	corr_guess = calc_corr_coeff(driver)
+	# Handle any coefficients outside the allowed bounds
+	if corr_guess > 1.0:
+		corr_guess = 1.0
+	elif corr_guess < 0.0:
+		corr_guess = 0.0
+	# Just keep two decimal places, don't need more
+	corr_guess_string = "{:.2f}".format(corr_guess)
 
-# Next we need to click on the NEXT button
-# The guess element is hidden so sendin keys will not work because
-# we're not dealing with an <input> element
-elem_next.click()
-time.sleep(5)
+	# Clear the text box
+	elem_guess.send_keys(Keys.BACKSPACE)
+	elem_guess.send_keys(Keys.BACKSPACE)
+	# Enter our guess for correlation coeff into text box
+	elem_guess.send_keys(corr_guess_string)
+	# And submit the guess
+	elem_guess.send_keys(Keys.RETURN)
+	# This takes us to the result page
+	#time.sleep(5)
 
+	# Next we need to click on the NEXT button
+	# The guess element is hidden so sendin keys will not work because
+	# we're not dealing with an <input> element
+	elem_next.click()
+	#time.sleep(5)
+
+# Now that we've finished need to die to register score
+# Should make guess entry a function
+for i in xrange(3):
+	corr_guess_string = 0
+	# Clear the text box
+	elem_guess.send_keys(Keys.BACKSPACE)
+	elem_guess.send_keys(Keys.BACKSPACE)
+	# Enter our guess for correlation coeff into text box
+	elem_guess.send_keys(corr_guess_string)
+	# And submit the guess
+	elem_guess.send_keys(Keys.RETURN)
+	# This takes us to the result page
+
+	# Next we need to click on the NEXT button
+	# The guess element is hidden so sendin keys will not work because
+	# we're not dealing with an <input> element
+	elem_next.click()
+
+# Finish up when user is ready
+wait = raw_input("All done?")
 
 driver.close()
