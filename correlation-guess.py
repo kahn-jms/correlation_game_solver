@@ -15,10 +15,13 @@ from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 # Want to be able to pause running to see what's going on
 import time
+from datetime import datetime
 # Need to pull out point coords from html
 import re
 # To calculate the actual correlation coeff
 from numpy import corrcoef
+# Selenium's find_element method is too slow
+import lxml.html
 
 num_points = 100
 
@@ -30,10 +33,17 @@ num_points = 100
 def calc_corr_coeff(driver):
 	x_coords = []
 	y_coords = []
-	for i in range(0, 100):
+
+	root = lxml.html.fromstring(driver.page_source)
+	for i in range(0, num_points):
+		#t = datetime.now()
 		# Fetch the coords from html of each point
-		point = driver.find_element_by_class_name("nv-point-"+str(i))
-		attr_val = point.get_attribute("transform")
+		#point = driver.find_element_by_class_name("nv-point-"+str(i))
+		#attr_val = point.get_attribute("transform")
+		attr_val = root.xpath('//path[@class="nv-point nv-point-'+str(i)+'"]/@transform')
+
+		# diff = datetime.now() - t
+		# print("Time to get elements:\t" + str(diff.total_seconds()))
 		# Pull out just the x-y coords
 		coords = re.split('\(|\)|,',str(attr_val))[1:3]
 		# Scale them down to between 0-1 and adjust the y-vals (flip)
@@ -87,6 +97,7 @@ elem_next = driver.find_element_by_id("next-btn")
 for i in xrange(num_games):
 	# Calculate the correlation coeff for this plot
 	corr_guess = calc_corr_coeff(driver)
+
 	# Handle any coefficients outside the allowed bounds
 	if corr_guess > 1.0:
 		corr_guess = 1.0
