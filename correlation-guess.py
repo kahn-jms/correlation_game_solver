@@ -13,6 +13,11 @@ James Kahn
 # Selenium let's us interact with a webpage
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
+import selenium.common.exceptions
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 # Want to be able to pause running to see what's going on
 import time
 from datetime import datetime
@@ -49,6 +54,7 @@ def calc_corr_coeff(driver):
 		# Scale them down to between 0-1 and adjust the y-vals (flip)
 		x_coords.append(float(coords[0])/360.0)
 		y_coords.append(abs(float(coords[1])-320.)/320.)
+
 	# Now we have all the coords calculate correlation coeff
 	#return numpy.corrcoef(x_coords,y_coords)[0, 1]
 	return corrcoef(x_coords,y_coords)[0, 1]
@@ -104,8 +110,10 @@ for i in xrange(num_games):
 	elif corr_guess < 0.0:
 		corr_guess = 0.0
 	# Just keep two decimal places, don't need more
-	corr_guess_string = "{:.2f}".format(corr_guess)
-
+	corr_guess_string = str(round(corr_guess, 2))
+	# print(corr_guess)
+	# print(corr_guess_string)
+	# raw_input("Enter guess?")
 	# Clear the text box
 	elem_guess.send_keys(Keys.BACKSPACE)
 	elem_guess.send_keys(Keys.BACKSPACE)
@@ -114,16 +122,27 @@ for i in xrange(num_games):
 	# And submit the guess
 	elem_guess.send_keys(Keys.RETURN)
 	# This takes us to the result page
-	#time.sleep(5)
+	#time.sleep(3)
 
 	# Next we need to click on the NEXT button
 	# The guess element is hidden so sendin keys will not work because
 	# we're not dealing with an <input> element
 	elem_next.click()
-	#time.sleep(5)
+	#time.sleep(1)
+	# Finally, wait for the guess screen to show up before continuing
+	try:
+		WebDriverWait(driver, 10).until(
+			lambda s:
+			s.find_element_by_id('guess-input').get_attribute('style') != "display: none;")
+	# If the wait has timed out something has gone wrong.
+	except selenium.common.exceptions.TimeoutException:
+		break
+	time.sleep(0.15)
+
 
 # Now that we've finished need to die to register score
 # Should make guess entry a function
+print("Finishing the game now")
 for i in xrange(3):
 	corr_guess_string = 0
 	# Clear the text box
@@ -139,6 +158,14 @@ for i in xrange(3):
 	# The guess element is hidden so sendin keys will not work because
 	# we're not dealing with an <input> element
 	elem_next.click()
+	try:
+		WebDriverWait(driver, 10).until(
+			lambda s:
+			s.find_element_by_id('guess-input').get_attribute('style') != "display: none;")
+		# If the wait has timed out something has gone wrong.
+	except selenium.common.exceptions.TimeoutException:
+		break
+	time.sleep(0.15)
 
 # Finish up when user is ready
 wait = raw_input("All done?")
