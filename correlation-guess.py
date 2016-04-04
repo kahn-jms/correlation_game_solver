@@ -123,10 +123,20 @@ for i in xrange(num_games):
 	elem_guess.send_keys(Keys.RETURN)
 	# This takes us to the result page
 	#time.sleep(3)
+	print("Games played: "+str(i))
 
 	# Next we need to click on the NEXT button
 	# The guess element is hidden so sendin keys will not work because
 	# we're not dealing with an <input> element
+	try:
+		WebDriverWait(driver, 10).until(
+			lambda s:
+			s.find_element_by_id('guess-input').get_attribute('style') == "display: none;")
+		# If the wait has timed out something has gone wrong.
+	except selenium.common.exceptions.TimeoutException:
+		break
+	time.sleep(0.05)
+
 	elem_next.click()
 	#time.sleep(1)
 	# Finally, wait for the guess screen to show up before continuing
@@ -137,7 +147,8 @@ for i in xrange(num_games):
 	# If the wait has timed out something has gone wrong.
 	except selenium.common.exceptions.TimeoutException:
 		break
-	time.sleep(0.15)
+	time.sleep(0.05)
+
 
 
 # Now that we've finished need to die to register score
