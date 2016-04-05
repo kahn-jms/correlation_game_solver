@@ -71,6 +71,7 @@ driver = webdriver.Chrome(chromedriver_location)
 # Go to the page we want to visit
 driver.get("http://guessthecorrelation.com/")
 
+web_wait = WebDriverWait(driver, 10)
 #assert "Python" in driver.title
 # elem = driver.find_element_by_name("q")
 # elem.send_keys("pycon")
@@ -99,8 +100,26 @@ num_games = int(raw_input("How many games should we play?"))
 elem_guess = driver.find_element_by_id("guess-input")
 # Next tag (type <a>) lets us move on from guess result screen
 elem_next = driver.find_element_by_id("next-btn")
+# Next tag (type <a>) lets us move on from guess result screen
+elem_submit_btn = driver.find_element_by_id("submit-btn")
+
 
 for i in xrange(num_games):
+	# Finally, wait for the guess screen to show up before continuing
+	try:
+		web_wait.until(EC.element_to_be_clickable((By.ID,'submit-btn')))
+		#print('guess button found')
+		# WebDriverWait(driver, 10).until(
+		# 	lambda s:
+		# 	s.find_element_by_id('guess-input').get_attribute('style') != "display: none;")
+		# If the wait has timed out something has gone wrong.
+	except selenium.common.exceptions.TimeoutException:
+		print("guess-input element not present")
+		break
+
+	if driver.find_element_by_class_name('added-lives').text == '-1':
+		time.sleep(0.2)
+	
 	# Calculate the correlation coeff for this plot
 	corr_guess = calc_corr_coeff(driver)
 
@@ -110,7 +129,7 @@ for i in xrange(num_games):
 	elif corr_guess < 0.0:
 		corr_guess = 0.0
 	# Just keep two decimal places, don't need more
-	corr_guess_string = str(round(corr_guess, 2))
+	corr_guess_string = str(round(corr_guess, 1))
 	# print(corr_guess)
 	# print(corr_guess_string)
 	# raw_input("Enter guess?")
@@ -129,25 +148,18 @@ for i in xrange(num_games):
 	# The guess element is hidden so sendin keys will not work because
 	# we're not dealing with an <input> element
 	try:
-		WebDriverWait(driver, 10).until(
-			lambda s:
-			s.find_element_by_id('guess-input').get_attribute('style') == "display: none;")
+		web_wait.until(EC.element_to_be_clickable((By.ID,'next-btn')))
+		#print('next button found')
+			# lambda s:
+			# s.find_element_by_id('guess-input').get_attribute('style') == "display: none;")
 		# If the wait has timed out something has gone wrong.
 	except selenium.common.exceptions.TimeoutException:
+		print('next button not found')
 		break
-	time.sleep(0.05)
-
 	elem_next.click()
+	#time.sleep(0.05)
 	#time.sleep(1)
-	# Finally, wait for the guess screen to show up before continuing
-	try:
-		WebDriverWait(driver, 10).until(
-			lambda s:
-			s.find_element_by_id('guess-input').get_attribute('style') != "display: none;")
-	# If the wait has timed out something has gone wrong.
-	except selenium.common.exceptions.TimeoutException:
-		break
-	time.sleep(0.05)
+	#time.sleep(0.05)
 
 
 
